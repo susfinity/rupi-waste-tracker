@@ -5,6 +5,9 @@ const SUBMISSIONS_HISTORY_KEY = "saahas_submissions_history";
 const PENDING_QUEUE_KEY = "saahas_pending_queue";
 const WEBHOOK_URL_KEY = "saahas_google_apps_script_url";
 
+export const DEFAULT_WEBHOOK_URL =
+  "https://script.google.com/macros/s/AKfycbzFEQRHTk6EeqIhh52CIcpdx1RcmR15zJt1DQjd86pOM54nfS1OgLF7Hd72stCLJoAMUA/exec";
+
 export const DEFAULT_WORKER: WorkerProfile = {
   name: "Field Worker",
   workerId: "FW-01",
@@ -98,12 +101,12 @@ export function removeFromPendingQueue(id: string): void {
 
 // Google Apps Script Webhook URL
 export function getStoredWebhookUrl(): string {
-  if (typeof window === "undefined") return "";
+  if (typeof window === "undefined") return DEFAULT_WEBHOOK_URL;
   try {
-    return localStorage.getItem(WEBHOOK_URL_KEY) || "";
+    return localStorage.getItem(WEBHOOK_URL_KEY) || DEFAULT_WEBHOOK_URL;
   } catch (e) {
     console.error("Failed to read webhook URL", e);
-    return "";
+    return DEFAULT_WEBHOOK_URL;
   }
 }
 

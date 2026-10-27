@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
+const DEFAULT_APPS_SCRIPT_URL =
+  "https://script.google.com/macros/s/AKfycbzFEQRHTk6EeqIhh52CIcpdx1RcmR15zJt1DQjd86pOM54nfS1OgLF7Hd72stCLJoAMUA/exec";
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -12,8 +15,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Determine webhook URL: either passed from client settings or from server env var
-    const targetUrl = webhookUrl || process.env.GOOGLE_APPS_SCRIPT_URL;
+    // Determine webhook URL: either passed from client, or from server env, or fallback default
+    const targetUrl =
+      webhookUrl || process.env.GOOGLE_APPS_SCRIPT_URL || DEFAULT_APPS_SCRIPT_URL;
 
     // If no webhook URL is configured yet, gracefully return mock success
     if (!targetUrl || targetUrl.trim() === "") {
