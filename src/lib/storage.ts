@@ -23,14 +23,17 @@ export const DEFAULT_WORKER: WorkerProfile = {
 export const TARGET_SHEET_ID = "10OTW8vR9Yu2kmdTcFxEI5acELh0njtckUon8cKyK_8k";
 export const TARGET_SHEET_URL = `https://docs.google.com/spreadsheets/d/${TARGET_SHEET_ID}/edit?gid=0#gid=0`;
 
+export const DEFAULT_WEBHOOK_URL =
+  "https://script.google.com/macros/s/AKfycbx_GtgYlJ7El9rQMYysK9dfu3--jVbUZG7MWtwYb8NVQseF2PPWzSZ7k8KSFNxO5D7m/exec";
+
 // Webhook URL
 export function getStoredWebhookUrl(): string {
-  if (typeof window === "undefined") return "";
+  if (typeof window === "undefined") return DEFAULT_WEBHOOK_URL;
   try {
-    return localStorage.getItem(WEBHOOK_URL_KEY) || "";
+    return localStorage.getItem(WEBHOOK_URL_KEY) || DEFAULT_WEBHOOK_URL;
   } catch (e) {
     console.error("Failed to read webhook url", e);
-    return "";
+    return DEFAULT_WEBHOOK_URL;
   }
 }
 
