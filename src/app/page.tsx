@@ -20,7 +20,6 @@ import { NumberCounterCard } from "@/components/NumberCounterCard";
 import { ReviewModal } from "@/components/ReviewModal";
 import { WorkerLoginModal } from "@/components/WorkerLoginModal";
 import { GoogleSheetSetupModal } from "@/components/GoogleSheetSetupModal";
-import { RecentSubmissions } from "@/components/RecentSubmissions";
 import { CoordinatorSummary } from "@/components/CoordinatorSummary";
 import {
   WorkerProfile,
@@ -29,7 +28,6 @@ import {
   RouteOption,
   CollectionPointEntry,
   CONSTITUENCY_NAME,
-  WARD_ROUTES,
 } from "@/types/waste-tracker";
 import {
   DEFAULT_WORKER,
@@ -44,6 +42,8 @@ import {
   getStoredDailyDraft,
   saveDailyDraft,
   clearDailyDraft,
+  getLastProfilePromptDate,
+  saveLastProfilePromptDate,
 } from "@/lib/storage";
 import { submitWasteRecords } from "@/lib/google-sheets";
 
@@ -70,8 +70,8 @@ export default function WasteTrackerApp() {
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
 
-  // Tab State
-  const [activeTab, setActiveTab] = useState<"form" | "history" | "summary">("form");
+  // Tab State (Only 2 tabs: form and summary)
+  const [activeTab, setActiveTab] = useState<"form" | "summary">("form");
 
   // Daily Hierarchy State
   const [date, setDate] = useState<string>("");
@@ -94,7 +94,7 @@ export default function WasteTrackerApp() {
     type: "success" | "error" | "info";
   } | null>(null);
 
-  // Load Initial Data & Online listener
+  // Load Initial Data & Daily First-Visit Check
   useEffect(() => {
     const today = (() => {
       const d = new Date();
@@ -105,13 +105,18 @@ export default function WasteTrackerApp() {
     })();
     setDate(today);
 
-    // 1. Supervisor Profile
+    // 1. Supervisor Profile & Daily First-Visit Modal
     const savedProfile = getStoredWorkerProfile();
     if (savedProfile) {
       setWorker(savedProfile);
       if (savedProfile.assignedWard) setWard(savedProfile.assignedWard);
       if (savedProfile.assignedRoute) setRoute(savedProfile.assignedRoute);
-    } else {
+    }
+
+    // Check if user has already visited/confirmed profile today
+    const lastPromptDate = getLastProfilePromptDate();
+    if (lastPromptDate !== today) {
+      // First visit of the day -> Pop up profile modal so supervisor can confirm/update today's route
       setIsWorkerModalOpen(true);
     }
 
@@ -171,6 +176,9 @@ export default function WasteTrackerApp() {
     saveWorkerProfile(profile);
     setWard(profile.assignedWard);
     setRoute(profile.assignedRoute);
+    if (date) {
+      saveLastProfilePromptDate(date);
+    }
     showToast(`Logged in as ${profile.name} (${profile.assignedRoute})`, "success");
   };
 
@@ -222,7 +230,7 @@ export default function WasteTrackerApp() {
 
   const completedCount = Object.values(completedPointsMap).filter(Boolean).length;
 
-  // Move to next point or open review
+  // Move to next point and scroll to top
   const handleSaveAndNext = () => {
     // Mark current point as completed
     setPointsData((prev) => {
@@ -238,6 +246,13 @@ export default function WasteTrackerApp() {
       const nextIndex = activePointIndex + 1;
       setActivePointIndex(nextIndex);
       showToast(`Saved ${collectionPoints[activePointIndex]}! Moving to ${collectionPoints[nextIndex]}.`, "success");
+
+      // Reset scroll to top to eliminate need to swipe
+      if (typeof window !== "undefined") {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        if (document.documentElement) document.documentElement.scrollTop = 0;
+        if (document.body) document.body.scrollTop = 0;
+      }
     } else {
       // Reached the end of collection points, open review modal
       setIsReviewModalOpen(true);
@@ -368,6 +383,44 @@ export default function WasteTrackerApp() {
 
   const isCurrentPointFilled = isPointFilled(currentPoint);
   const isLastPoint = activePointIndex === collectionPoints.length - 1;
+
+  // Live Records for Coordinator (Combines in-progress points + pending queue + history)
+  const liveActivePointsRecords: WasteRecord[] = pointsData
+    .filter((p) => isPointFilled(p))
+    .map((p) => ({
+      id: `draft_${p.pointName}`,
+      timestamp: new Date().toISOString(),
+      date,
+      constituency: CONSTITUENCY_NAME,
+      ward,
+      route,
+      supervisorName: worker.name,
+      pointName: p.pointName,
+      givingWasteHH: p.givingWasteHH || 0,
+      segregatedHH: p.segregatedHH || 0,
+      dryHH: p.dryHH || 0,
+      sanitaryHH: p.sanitaryHH || 0,
+      specialCareHH: p.specialCareHH || 0,
+      mixedHH: p.mixedHH || 0,
+      remarks: p.remarks || "",
+      syncStatus: "pending" as const,
+    }));
+
+  const coordinatorRecords: WasteRecord[] = [
+    ...liveActivePointsRecords,
+    ...pendingQueue.filter(
+      (pq) =>
+        !liveActivePointsRecords.some(
+          (lp) => lp.pointName === pq.pointName && lp.route === pq.route && lp.date === pq.date
+        )
+    ),
+    ...history.filter(
+      (h) =>
+        !liveActivePointsRecords.some(
+          (lp) => lp.pointName === h.pointName && lp.route === h.route && lp.date === h.date
+        )
+    ),
+  ];
 
   return (
     <div className="min-h-full flex flex-col bg-[#F8F9F5]">
@@ -546,22 +599,10 @@ export default function WasteTrackerApp() {
           </div>
         )}
 
-        {/* TAB 2: HISTORY */}
-        {activeTab === "history" && (
-          <div className="animate-in fade-in duration-150">
-            <RecentSubmissions
-              records={history}
-              pendingRecords={pendingQueue}
-              onSyncAllPending={handleSyncAllPending}
-              isSyncing={isSyncing}
-            />
-          </div>
-        )}
-
-        {/* TAB 3: COORDINATOR SUMMARY */}
+        {/* TAB 2: COORDINATOR SUMMARY */}
         {activeTab === "summary" && (
           <div className="animate-in fade-in duration-150">
-            <CoordinatorSummary records={[...pendingQueue, ...history]} />
+            <CoordinatorSummary records={coordinatorRecords} />
           </div>
         )}
       </main>
@@ -622,7 +663,10 @@ export default function WasteTrackerApp() {
 
       <WorkerLoginModal
         isOpen={isWorkerModalOpen}
-        onClose={() => setIsWorkerModalOpen(false)}
+        onClose={() => {
+          setIsWorkerModalOpen(false);
+          if (date) saveLastProfilePromptDate(date);
+        }}
         currentProfile={worker}
         onSaveProfile={handleSaveProfile}
       />

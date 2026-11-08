@@ -1,16 +1,15 @@
 "use client";
 
 import React, { useState } from "react";
-import { WasteRecord, WardOption, RouteOption, CONSTITUENCY_NAME } from "@/types/waste-tracker";
+import { WasteRecord, CONSTITUENCY_NAME } from "@/types/waste-tracker";
 import {
   BarChart3,
-  Filter,
   Layers,
   ChevronDown,
   ChevronUp,
   MapPin,
-  Calendar,
   Eye,
+  Calendar,
 } from "lucide-react";
 
 interface CoordinatorSummaryProps {
@@ -20,7 +19,7 @@ interface CoordinatorSummaryProps {
 export const CoordinatorSummary: React.FC<CoordinatorSummaryProps> = ({ records }) => {
   const [selectedWardFilter, setSelectedWardFilter] = useState<string>("All");
   const [selectedRouteFilter, setSelectedRouteFilter] = useState<string>("All");
-  const [showPointInspector, setShowPointInspector] = useState(false);
+  const [showPointInspector, setShowPointInspector] = useState(true);
 
   // Filter records
   const filteredRecords = records.filter((r) => {
@@ -29,17 +28,15 @@ export const CoordinatorSummary: React.FC<CoordinatorSummaryProps> = ({ records 
     return true;
   });
 
-  // Calculate totals across filtered records
-  const totalGivingWaste = filteredRecords.reduce((sum, r) => sum + (r.givingWasteHH || 0), 0);
-  const totalSegregated = filteredRecords.reduce((sum, r) => sum + (r.segregatedHH || 0), 0);
-  const totalDry = filteredRecords.reduce((sum, r) => sum + (r.dryHH || 0), 0);
-  const totalSanitary = filteredRecords.reduce((sum, r) => sum + (r.sanitaryHH || 0), 0);
-  const totalSpecialCare = filteredRecords.reduce((sum, r) => sum + (r.specialCareHH || 0), 0);
-  const totalMixed = filteredRecords.reduce((sum, r) => sum + (r.mixedHH || 0), 0);
+  // Calculate totals across filtered records defensively
+  const totalGivingWaste = filteredRecords.reduce(
+    (sum, r) => sum + Number(r.givingWasteHH ?? (r as any).totalHH ?? 0),
+    0
+  );
 
   // Group by Ward
   const wardGroups = records.reduce((acc, r) => {
-    const wardKey = r.ward || "Other";
+    const wardKey = r.ward || "Ward 28 - Kammanahalli";
     if (!acc[wardKey]) {
       acc[wardKey] = {
         givingWaste: 0,
@@ -52,12 +49,12 @@ export const CoordinatorSummary: React.FC<CoordinatorSummaryProps> = ({ records 
         routes: new Set<string>(),
       };
     }
-    acc[wardKey].givingWaste += r.givingWasteHH || 0;
-    acc[wardKey].segregated += r.segregatedHH || 0;
-    acc[wardKey].dry += r.dryHH || 0;
-    acc[wardKey].sanitary += r.sanitaryHH || 0;
-    acc[wardKey].specialCare += r.specialCareHH || 0;
-    acc[wardKey].mixed += r.mixedHH || 0;
+    acc[wardKey].givingWaste += Number(r.givingWasteHH ?? (r as any).totalHH ?? 0);
+    acc[wardKey].segregated += Number(r.segregatedHH ?? 0);
+    acc[wardKey].dry += Number(r.dryHH ?? (r as any).plasticHH ?? 0);
+    acc[wardKey].sanitary += Number(r.sanitaryHH ?? 0);
+    acc[wardKey].specialCare += Number(r.specialCareHH ?? 0);
+    acc[wardKey].mixed += Number(r.mixedHH ?? 0);
     acc[wardKey].pointsCount += 1;
     if (r.route) acc[wardKey].routes.add(r.route);
     return acc;
@@ -65,12 +62,12 @@ export const CoordinatorSummary: React.FC<CoordinatorSummaryProps> = ({ records 
 
   // Group by Route
   const routeGroups = records.reduce((acc, r) => {
-    const routeKey = r.route || "Other";
+    const routeKey = r.route || "Janaki Ram Layout - Route 1";
     if (!acc[routeKey]) {
       acc[routeKey] = {
-        ward: r.ward,
-        supervisor: r.supervisorName,
-        date: r.date,
+        ward: r.ward || "",
+        supervisor: r.supervisorName || "Field Supervisor",
+        date: r.date || "",
         givingWaste: 0,
         segregated: 0,
         dry: 0,
@@ -80,12 +77,12 @@ export const CoordinatorSummary: React.FC<CoordinatorSummaryProps> = ({ records 
         points: [] as WasteRecord[],
       };
     }
-    acc[routeKey].givingWaste += r.givingWasteHH || 0;
-    acc[routeKey].segregated += r.segregatedHH || 0;
-    acc[routeKey].dry += r.dryHH || 0;
-    acc[routeKey].sanitary += r.sanitaryHH || 0;
-    acc[routeKey].specialCare += r.specialCareHH || 0;
-    acc[routeKey].mixed += r.mixedHH || 0;
+    acc[routeKey].givingWaste += Number(r.givingWasteHH ?? (r as any).totalHH ?? 0);
+    acc[routeKey].segregated += Number(r.segregatedHH ?? 0);
+    acc[routeKey].dry += Number(r.dryHH ?? (r as any).plasticHH ?? 0);
+    acc[routeKey].sanitary += Number(r.sanitaryHH ?? 0);
+    acc[routeKey].specialCare += Number(r.specialCareHH ?? 0);
+    acc[routeKey].mixed += Number(r.mixedHH ?? 0);
     acc[routeKey].points.push(r);
     return acc;
   }, {} as Record<string, { ward: string; supervisor: string; date: string; givingWaste: number; segregated: number; dry: number; sanitary: number; specialCare: number; mixed: number; points: WasteRecord[] }>);
@@ -106,9 +103,14 @@ export const CoordinatorSummary: React.FC<CoordinatorSummaryProps> = ({ records 
               </p>
             </div>
           </div>
-          <span className="text-[11px] bg-white/10 px-2.5 py-1 rounded-full font-mono">
-            {filteredRecords.length} {filteredRecords.length === 1 ? "Point" : "Points"}
-          </span>
+          <div className="text-right">
+            <span className="text-xs font-black text-[#FFE599] block">
+              {totalGivingWaste} Total HHs
+            </span>
+            <span className="text-[10px] text-[#A2B89B]">
+              {filteredRecords.length} {filteredRecords.length === 1 ? "Point" : "Points"} in View
+            </span>
+          </div>
         </div>
 
         {/* Filter Bar */}
@@ -153,76 +155,6 @@ export const CoordinatorSummary: React.FC<CoordinatorSummaryProps> = ({ records 
         </div>
       </div>
 
-      {/* 6 Waste Data Metric Cards (Matching the user color reference) */}
-      <div>
-        <h4 className="font-extrabold text-xs text-[#192613] mb-2 flex items-center justify-between">
-          <span>Total Waste Collected By Category</span>
-          <span className="text-[10px] font-normal text-[#6B7F66]">ಒಟ್ಟು ಸಂಗ್ರಹಣಾ ವಿವರ</span>
-        </h4>
-
-        <div className="grid grid-cols-2 gap-2">
-          {/* 1. HHs Giving Waste (Cream - #FFF2CC) */}
-          <div className="bg-[#FFFDF6] border-2 border-[#FFE599] rounded-2xl p-3 shadow-2xs">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-extrabold text-[#7A5A00]">1. HHs Giving Waste</span>
-              <span className="w-2.5 h-2.5 rounded-full bg-[#FFE599]" />
-            </div>
-            <span className="font-black text-2xl text-[#7A5A00] block mt-1">{totalGivingWaste}</span>
-            <span className="text-[10px] text-[#A67C00]">ತ್ಯಾಜ್ಯ ನೀಡಿದ ಒಟ್ಟು ಮನೆಗಳು</span>
-          </div>
-
-          {/* 2. HHs Giving Segregated Wastes (Pastel Green - #D9EAD3) */}
-          <div className="bg-[#F9FCF8] border-2 border-[#B6D7A8] rounded-2xl p-3 shadow-2xs">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-extrabold text-[#274E13]">2. Giving Seg Wastes</span>
-              <span className="w-2.5 h-2.5 rounded-full bg-[#B6D7A8]" />
-            </div>
-            <span className="font-black text-2xl text-[#274E13] block mt-1">{totalSegregated}</span>
-            <span className="text-[10px] text-[#427A23]">ವಿಂಗಡಿಸಲಾದ ಹಸಿ ತ್ಯಾಜ್ಯ</span>
-          </div>
-
-          {/* 3. HHs Giving Dry Waste (Sky Blue - #C9DAF8) */}
-          <div className="bg-[#F7FAFE] border-2 border-[#A4C2F4] rounded-2xl p-3 shadow-2xs">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-extrabold text-[#0B5394]">3. Giving Dry Waste</span>
-              <span className="w-2.5 h-2.5 rounded-full bg-[#A4C2F4]" />
-            </div>
-            <span className="font-black text-2xl text-[#0B5394] block mt-1">{totalDry}</span>
-            <span className="text-[10px] text-[#2563EB]">ಒಣ ತ್ಯಾಜ್ಯ ನೀಡಿದ ಮನೆಗಳು</span>
-          </div>
-
-          {/* 4. HHs Giving Sanitary Waste (Salmon - #E69185) */}
-          <div className="bg-[#FEF8F7] border-2 border-[#E69185] rounded-2xl p-3 shadow-2xs">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-extrabold text-[#783F04]">4. Giving Sanitary Waste</span>
-              <span className="w-2.5 h-2.5 rounded-full bg-[#E69185]" />
-            </div>
-            <span className="font-black text-2xl text-[#D9534F] block mt-1">{totalSanitary}</span>
-            <span className="text-[10px] text-[#A03D39]">ಸ್ಯಾನಿಟರಿ ತ್ಯಾಜ್ಯ ನೀಡಿದ ಮನೆಗಳು</span>
-          </div>
-
-          {/* 5. HHs Giving Special Care Waste (Slate Grey - #B7B7B7) */}
-          <div className="bg-[#FAFAFA] border-2 border-[#B7B7B7] rounded-2xl p-3 shadow-2xs">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-extrabold text-[#333333]">5. Giving Special Care</span>
-              <span className="w-2.5 h-2.5 rounded-full bg-[#B7B7B7]" />
-            </div>
-            <span className="font-black text-2xl text-[#424242] block mt-1">{totalSpecialCare}</span>
-            <span className="text-[10px] text-[#616161]">ವಿಶೇಷ ಕಾಳಜಿ ತ್ಯಾಜ್ಯ</span>
-          </div>
-
-          {/* 6. HHs Giving Mixed Waste (Crimson - #CC4125) */}
-          <div className="bg-[#FFF6F5] border-2 border-[#CC4125] rounded-2xl p-3 shadow-2xs">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-extrabold text-[#8A1A10]">6. Giving Mixed Waste</span>
-              <span className="w-2.5 h-2.5 rounded-full bg-[#CC4125]" />
-            </div>
-            <span className="font-black text-2xl text-[#CC4125] block mt-1">{totalMixed}</span>
-            <span className="text-[10px] text-[#B32415]">ಮಿಶ್ರ ತ್ಯಾಜ್ಯ ನೀಡಿದ ಮನೆಗಳು</span>
-          </div>
-        </div>
-      </div>
-
       {/* Ward-Wise Summary Cards */}
       <div className="bg-white rounded-2xl border border-[#DCE8D4] p-4 shadow-2xs space-y-3">
         <h4 className="font-bold text-xs text-[#192613] flex items-center justify-between">
@@ -234,7 +166,9 @@ export const CoordinatorSummary: React.FC<CoordinatorSummaryProps> = ({ records 
         </h4>
 
         {Object.keys(wardGroups).length === 0 ? (
-          <p className="text-xs text-[#71856C] text-center py-3">No records submitted yet.</p>
+          <p className="text-xs text-[#71856C] text-center py-4">
+            No entries recorded yet. Enter counts in the "Daily Entry" tab to see live breakdown.
+          </p>
         ) : (
           <div className="space-y-2.5">
             {Object.entries(wardGroups).map(([wardName, data]) => (
@@ -248,34 +182,34 @@ export const CoordinatorSummary: React.FC<CoordinatorSummaryProps> = ({ records 
                   </div>
                   <div className="text-right">
                     <span className="text-xs font-black text-[#7A5A00]">
-                      {data.givingWaste} Total HHs
+                      {data.givingWaste} HHs Visited
                     </span>
                   </div>
                 </div>
 
-                {/* 6 Mini Metric Badges */}
+                {/* 6 Mini Metric Badges (Matching Palette Colors) */}
                 <div className="grid grid-cols-6 gap-1 text-[10px] text-center font-bold">
                   <div className="bg-[#FFF2CC] text-[#7A5A00] py-1 rounded-sm" title="Giving Waste">
                     <span className="block text-[8px] opacity-75">Waste</span>
                     {data.givingWaste}
                   </div>
-                  <div className="bg-[#D9EAD3] text-[#274E13] py-1 rounded-sm" title="Segregated">
+                  <div className="bg-[#D9EAD3] text-[#274E13] py-1 rounded-sm" title="Seg Wet Waste">
                     <span className="block text-[8px] opacity-75">Seg</span>
                     {data.segregated}
                   </div>
-                  <div className="bg-[#C9DAF8] text-[#0B5394] py-1 rounded-sm" title="Dry">
+                  <div className="bg-[#C9DAF8] text-[#0B5394] py-1 rounded-sm" title="Dry Waste">
                     <span className="block text-[8px] opacity-75">Dry</span>
                     {data.dry}
                   </div>
-                  <div className="bg-[#F4CCCC] text-[#783F04] py-1 rounded-sm" title="Sanitary">
+                  <div className="bg-[#F4CCCC] text-[#783F04] py-1 rounded-sm" title="Sanitary Waste">
                     <span className="block text-[8px] opacity-75">Sanitary</span>
                     {data.sanitary}
                   </div>
-                  <div className="bg-[#E0E0E0] text-[#333333] py-1 rounded-sm" title="Special Care">
+                  <div className="bg-[#E0E0E0] text-[#333333] py-1 rounded-sm" title="Special Care Waste">
                     <span className="block text-[8px] opacity-75">Sp. Care</span>
                     {data.specialCare}
                   </div>
-                  <div className="bg-[#F8D7DA] text-[#8A1A10] py-1 rounded-sm" title="Mixed">
+                  <div className="bg-[#F8D7DA] text-[#8A1A10] py-1 rounded-sm" title="Mixed Waste">
                     <span className="block text-[8px] opacity-75">Mixed</span>
                     {data.mixed}
                   </div>
@@ -297,7 +231,9 @@ export const CoordinatorSummary: React.FC<CoordinatorSummaryProps> = ({ records 
         </h4>
 
         {Object.keys(routeGroups).length === 0 ? (
-          <p className="text-xs text-[#71856C] text-center py-3">No routes submitted yet.</p>
+          <p className="text-xs text-[#71856C] text-center py-4">
+            No route data available yet.
+          </p>
         ) : (
           <div className="space-y-3">
             {Object.entries(routeGroups).map(([routeName, data]) => (
@@ -324,19 +260,19 @@ export const CoordinatorSummary: React.FC<CoordinatorSummaryProps> = ({ records 
                   <div className="bg-[#FFF2CC] text-[#7A5A00] py-0.5 rounded-sm" title="Giving Waste">
                     {data.givingWaste}
                   </div>
-                  <div className="bg-[#D9EAD3] text-[#274E13] py-0.5 rounded-sm" title="Segregated">
+                  <div className="bg-[#D9EAD3] text-[#274E13] py-0.5 rounded-sm" title="Seg Wet Waste">
                     {data.segregated}
                   </div>
-                  <div className="bg-[#C9DAF8] text-[#0B5394] py-0.5 rounded-sm" title="Dry">
+                  <div className="bg-[#C9DAF8] text-[#0B5394] py-0.5 rounded-sm" title="Dry Waste">
                     {data.dry}
                   </div>
-                  <div className="bg-[#F4CCCC] text-[#783F04] py-0.5 rounded-sm" title="Sanitary">
+                  <div className="bg-[#F4CCCC] text-[#783F04] py-0.5 rounded-sm" title="Sanitary Waste">
                     {data.sanitary}
                   </div>
                   <div className="bg-[#E0E0E0] text-[#333333] py-0.5 rounded-sm" title="Special Care">
                     {data.specialCare}
                   </div>
-                  <div className="bg-[#F8D7DA] text-[#8A1A10] py-0.5 rounded-sm" title="Mixed">
+                  <div className="bg-[#F8D7DA] text-[#8A1A10] py-0.5 rounded-sm" title="Mixed Waste">
                     {data.mixed}
                   </div>
                 </div>
@@ -346,7 +282,7 @@ export const CoordinatorSummary: React.FC<CoordinatorSummaryProps> = ({ records 
         )}
       </div>
 
-      {/* Collection Point Granular Inspection Toggle */}
+      {/* Collection Point Granular Inspection Section */}
       <div className="bg-white rounded-2xl border border-[#DCE8D4] overflow-hidden shadow-2xs">
         <button
           type="button"
@@ -359,7 +295,7 @@ export const CoordinatorSummary: React.FC<CoordinatorSummaryProps> = ({ records 
             </div>
             <div>
               <h4 className="font-bold text-xs text-[#192613]">
-                Inspect Collection Point Wise Data
+                Inspect Collection Point Wise Data ({filteredRecords.length})
               </h4>
               <p className="text-[10px] text-[#6B7F66]">ಸಂಗ್ರಹಣಾ ಸ್ಥಳವಾರು ವಿವರವಾದ ಪರಿಶೀಲನೆ</p>
             </div>
@@ -374,49 +310,64 @@ export const CoordinatorSummary: React.FC<CoordinatorSummaryProps> = ({ records 
         {showPointInspector && (
           <div className="p-4 pt-0 border-t border-[#EAEFE6] space-y-2">
             {filteredRecords.length === 0 ? (
-              <p className="text-xs text-[#71856C] text-center py-4">No points to display.</p>
+              <p className="text-xs text-[#71856C] text-center py-4">No collection points to display.</p>
             ) : (
-              <div className="divide-y divide-[#EAEFE6] max-h-72 overflow-y-auto">
-                {filteredRecords.map((pt) => (
-                  <div key={pt.id} className="py-2.5 space-y-1">
-                    <div className="flex items-center justify-between text-xs">
-                      <div>
-                        <span className="font-extrabold text-[#2563EB]">{pt.pointName}</span>
-                        <span className="text-[10px] text-[#6B7F66] ml-2 font-medium">
-                          {pt.route} ({pt.ward?.split(" - ")[0]})
+              <div className="divide-y divide-[#EAEFE6] max-h-80 overflow-y-auto">
+                {filteredRecords.map((pt) => {
+                  const givingWaste = Number(pt.givingWasteHH ?? (pt as any).totalHH ?? 0);
+                  const segregated = Number(pt.segregatedHH ?? 0);
+                  const dry = Number(pt.dryHH ?? (pt as any).plasticHH ?? 0);
+                  const sanitary = Number(pt.sanitaryHH ?? 0);
+                  const specialCare = Number(pt.specialCareHH ?? 0);
+                  const mixed = Number(pt.mixedHH ?? 0);
+                  const isDraft = pt.id?.startsWith("draft_");
+
+                  return (
+                    <div key={pt.id} className="py-2.5 space-y-1.5">
+                      <div className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-extrabold text-[#2563EB]">{pt.pointName}</span>
+                          <span className="text-[10px] text-[#6B7F66] font-medium">
+                            {pt.route}
+                          </span>
+                          {isDraft && (
+                            <span className="text-[9px] font-bold bg-[#E8F5E9] text-[#2E7D32] px-1.5 py-0.2 rounded-sm border border-[#C8E6C9]">
+                              Live Today
+                            </span>
+                          )}
+                        </div>
+                        <span className="font-bold text-[#7A5A00]">{givingWaste} HHs</span>
+                      </div>
+
+                      <div className="grid grid-cols-6 gap-1 text-[9px] text-center font-bold">
+                        <span className="bg-[#FFF2CC] text-[#7A5A00] py-0.5 rounded-sm">
+                          W: {givingWaste}
+                        </span>
+                        <span className="bg-[#D9EAD3] text-[#274E13] py-0.5 rounded-sm">
+                          Seg: {segregated}
+                        </span>
+                        <span className="bg-[#C9DAF8] text-[#0B5394] py-0.5 rounded-sm">
+                          Dry: {dry}
+                        </span>
+                        <span className="bg-[#F4CCCC] text-[#783F04] py-0.5 rounded-sm">
+                          San: {sanitary}
+                        </span>
+                        <span className="bg-[#E0E0E0] text-[#333333] py-0.5 rounded-sm">
+                          Spc: {specialCare}
+                        </span>
+                        <span className="bg-[#F8D7DA] text-[#8A1A10] py-0.5 rounded-sm">
+                          Mix: {mixed}
                         </span>
                       </div>
-                      <span className="font-bold text-[#7A5A00]">{pt.givingWasteHH} HHs</span>
-                    </div>
 
-                    <div className="grid grid-cols-6 gap-1 text-[9px] text-center font-bold">
-                      <span className="bg-[#FFF2CC] text-[#7A5A00] py-0.5 rounded-sm">
-                        W: {pt.givingWasteHH}
-                      </span>
-                      <span className="bg-[#D9EAD3] text-[#274E13] py-0.5 rounded-sm">
-                        Seg: {pt.segregatedHH}
-                      </span>
-                      <span className="bg-[#C9DAF8] text-[#0B5394] py-0.5 rounded-sm">
-                        Dry: {pt.dryHH}
-                      </span>
-                      <span className="bg-[#F4CCCC] text-[#783F04] py-0.5 rounded-sm">
-                        San: {pt.sanitaryHH}
-                      </span>
-                      <span className="bg-[#E0E0E0] text-[#333333] py-0.5 rounded-sm">
-                        Spc: {pt.specialCareHH}
-                      </span>
-                      <span className="bg-[#F8D7DA] text-[#8A1A10] py-0.5 rounded-sm">
-                        Mix: {pt.mixedHH}
-                      </span>
+                      {pt.remarks && (
+                        <p className="text-[10px] text-[#55694E] italic bg-[#F7F9F5] px-2 py-0.5 rounded-md">
+                          Remarks: {pt.remarks}
+                        </p>
+                      )}
                     </div>
-
-                    {pt.remarks && (
-                      <p className="text-[10px] text-[#55694E] italic bg-[#F7F9F5] px-2 py-0.5 rounded-md mt-1">
-                        Remarks: {pt.remarks}
-                      </p>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

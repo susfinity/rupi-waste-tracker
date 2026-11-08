@@ -11,6 +11,7 @@ const SUBMISSIONS_HISTORY_KEY = "saahas_submissions_history_v2";
 const PENDING_QUEUE_KEY = "saahas_pending_queue_v2";
 const WEBHOOK_URL_KEY = "saahas_google_apps_script_url";
 const DRAFT_KEY = "saahas_daily_points_draft";
+const PROFILE_PROMPT_DATE_KEY = "saahas_profile_prompt_date";
 
 export const DEFAULT_WORKER: WorkerProfile = {
   name: "Field Supervisor",
@@ -92,12 +93,65 @@ export function clearWorkerProfile(): void {
   localStorage.removeItem(WORKER_PROFILE_KEY);
 }
 
-// Submissions History (Last 100 entries)
+// Track when profile was prompted for the day
+export function getLastProfilePromptDate(): string {
+  if (typeof window === "undefined") return "";
+  try {
+    return localStorage.getItem(PROFILE_PROMPT_DATE_KEY) || "";
+  } catch {
+    return "";
+  }
+}
+
+export function saveLastProfilePromptDate(date: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(PROFILE_PROMPT_DATE_KEY, date);
+  } catch (e) {
+    console.error("Failed to save prompt date", e);
+  }
+}
+
+// Submissions History (Last 200 entries, merges legacy data)
 export function getStoredHistory(): WasteRecord[] {
   if (typeof window === "undefined") return [];
   try {
     const raw = localStorage.getItem(SUBMISSIONS_HISTORY_KEY);
-    return raw ? JSON.parse(raw) : [];
+    let list: WasteRecord[] = raw ? JSON.parse(raw) : [];
+
+    // Also check if legacy submissions exist
+    const legacyRaw = localStorage.getItem("saahas_submissions_history");
+    if (legacyRaw) {
+      const legacyItems: any[] = JSON.parse(legacyRaw);
+      const convertedLegacy: WasteRecord[] = legacyItems.map((item) => ({
+        id: item.id || "legacy_" + Math.random().toString(36).substring(2, 7),
+        timestamp: item.timestamp || new Date().toISOString(),
+        date: item.date || "",
+        constituency: "Sarvagna Nagar",
+        ward: "Ward 28 - Kammanahalli",
+        route: "Janaki Ram Layout - Route 1",
+        supervisorName: item.workerName || "Field Supervisor",
+        pointName: "Point 1",
+        givingWasteHH: Number(item.givingWasteHH ?? item.totalHH ?? 0),
+        segregatedHH: Number(item.segregatedHH ?? 0),
+        dryHH: Number(item.dryHH ?? item.plasticHH ?? 0),
+        sanitaryHH: Number(item.sanitaryHH ?? 0),
+        specialCareHH: Number(item.specialCareHH ?? 0),
+        mixedHH: Number(item.mixedHH ?? 0),
+        remarks: item.remarks || item.notes || "",
+        syncStatus: item.syncStatus || "synced",
+      }));
+
+      // Merge and deduplicate
+      const existingIds = new Set(list.map((r) => r.id));
+      for (const leg of convertedLegacy) {
+        if (!existingIds.has(leg.id)) {
+          list.push(leg);
+        }
+      }
+    }
+
+    return list;
   } catch (e) {
     console.error("Failed to read history", e);
     return [];

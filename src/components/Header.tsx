@@ -7,8 +7,8 @@ import { TARGET_SHEET_URL } from "@/lib/storage";
 
 interface HeaderProps {
   worker: WorkerProfile;
-  activeTab: "form" | "history" | "summary";
-  setActiveTab: (tab: "form" | "history" | "summary") => void;
+  activeTab: "form" | "summary";
+  setActiveTab: (tab: "form" | "summary") => void;
   onOpenWorkerModal: () => void;
   onOpenSettingsModal: () => void;
   pendingCount: number;
@@ -123,7 +123,7 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
-      {/* Navigation Tabs */}
+      {/* Navigation Tabs (Only 2 tabs now: Daily Entry and Coordinator) */}
       <div className="max-w-md mx-auto px-4 pt-1 flex border-b border-[#E3EBDC] bg-white">
         <button
           onClick={() => setActiveTab("form")}
@@ -138,18 +138,6 @@ export const Header: React.FC<HeaderProps> = ({
         </button>
 
         <button
-          onClick={() => setActiveTab("history")}
-          className={`flex-1 py-2 text-center text-xs font-bold border-b-2 transition-all ${
-            activeTab === "history"
-              ? "border-[#4C9F38] text-[#377527]"
-              : "border-transparent text-[#6F7F6A] hover:text-[#192613]"
-          }`}
-        >
-          Submissions History
-          <span className="block text-[10px] font-normal text-[#8A9B85]">ಇಂದಿನ ಪಟ್ಟಿ</span>
-        </button>
-
-        <button
           onClick={() => setActiveTab("summary")}
           className={`flex-1 py-2 text-center text-xs font-bold border-b-2 transition-all ${
             activeTab === "summary"
@@ -158,7 +146,7 @@ export const Header: React.FC<HeaderProps> = ({
           }`}
         >
           Coordinator
-          <span className="block text-[10px] font-normal text-[#8A9B85]">ಸಾರಾಂಶ</span>
+          <span className="block text-[10px] font-normal text-[#8A9B85]">ಸಾರಾಂಶ & ಇತಿಹಾಸ</span>
         </button>
       </div>
     </header>
