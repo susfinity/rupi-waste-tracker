@@ -3,7 +3,7 @@
 import React from "react";
 import { User, Settings, Wifi, WifiOff, FileSpreadsheet, RefreshCw } from "lucide-react";
 import { WorkerProfile } from "@/types/waste-tracker";
-import { TARGET_SHEET_URL } from "@/lib/google-sheets";
+import { TARGET_SHEET_URL } from "@/lib/storage";
 
 interface HeaderProps {
   worker: WorkerProfile;
@@ -76,10 +76,10 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
-      {/* Worker Profile & Connectivity Strip */}
+      {/* Supervisor Profile & Connectivity Strip */}
       <div className="bg-[#F8FAF4] border-t border-[#EAEFE4] px-4 py-2">
         <div className="max-w-md mx-auto flex items-center justify-between text-xs">
-          {/* Worker Info Pill */}
+          {/* Supervisor Info Pill */}
           <button
             onClick={onOpenWorkerModal}
             className="flex items-center gap-1.5 bg-white border border-[#D5E4CC] text-[#192613] px-2.5 py-1 rounded-full font-medium shadow-2xs hover:bg-[#F4F9F0] transition"
@@ -87,9 +87,9 @@ export const Header: React.FC<HeaderProps> = ({
             <div className="w-4 h-4 rounded-full bg-[#4C9F38] text-white flex items-center justify-center text-[10px]">
               <User className="w-2.5 h-2.5" />
             </div>
-            <span className="font-semibold max-w-[120px] truncate">{worker.name}</span>
-            <span className="text-[10px] text-[#5B6B56] bg-[#EDF7E8] px-1.5 py-0.2 rounded-sm font-mono">
-              {worker.workerId}
+            <span className="font-semibold max-w-[130px] truncate">{worker.name}</span>
+            <span className="text-[10px] text-[#2563EB] bg-[#EFF6FF] px-1.5 py-0.5 rounded-md font-semibold truncate max-w-[110px]">
+              {worker.assignedRoute}
             </span>
           </button>
 
@@ -145,7 +145,7 @@ export const Header: React.FC<HeaderProps> = ({
               : "border-transparent text-[#6F7F6A] hover:text-[#192613]"
           }`}
         >
-          Today's History
+          Submissions History
           <span className="block text-[10px] font-normal text-[#8A9B85]">ಇಂದಿನ ಪಟ್ಟಿ</span>
         </button>
 

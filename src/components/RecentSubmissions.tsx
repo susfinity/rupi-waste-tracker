@@ -10,9 +10,8 @@ import {
   CloudOff,
   ExternalLink,
   RefreshCw,
-  Sparkles,
 } from "lucide-react";
-import { TARGET_SHEET_URL } from "@/lib/google-sheets";
+import { TARGET_SHEET_URL } from "@/lib/storage";
 
 interface RecentSubmissionsProps {
   records: WasteRecord[];
@@ -39,7 +38,7 @@ export const RecentSubmissions: React.FC<RecentSubmissionsProps> = ({
               </div>
               <div>
                 <h4 className="font-extrabold text-xs text-[#694E03]">
-                  {pendingRecords.length} Offline Entry Waiting to Sync
+                  {pendingRecords.length} Offline Records Waiting to Sync
                 </h4>
                 <p className="text-[11px] text-[#8C6D12]">
                   ಇಂಟರ್ನೆಟ್ ಸಂಪರ್ಕಗೊಂಡಾಗ ಸಿಂಕ್ ಮಾಡಿ
@@ -103,44 +102,58 @@ export const RecentSubmissions: React.FC<RecentSubmissionsProps> = ({
           {pendingRecords.map((item) => (
             <div
               key={item.id}
-              className="bg-white rounded-2xl border border-amber-300 p-3.5 shadow-xs space-y-2.5 relative overflow-hidden"
+              className="bg-white rounded-2xl border border-amber-300 p-3.5 shadow-xs space-y-2 relative overflow-hidden"
             >
               <div className="absolute top-0 right-0 bg-[#F7C500] text-[#553E00] text-[10px] font-black px-2.5 py-0.5 rounded-bl-lg">
                 QUEUED OFFLINE
               </div>
 
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  <MapPin className="w-4 h-4 text-[#F15B2B]" />
-                  <span className="font-extrabold text-sm text-[#192613]">
-                    {item.layout}
+                <div>
+                  <span className="text-xs font-extrabold text-[#2563EB]">{item.pointName}</span>
+                  <span className="text-[11px] text-[#6C7E67] ml-2 font-medium">
+                    {item.route} ({item.ward?.split(" - ")[0]})
                   </span>
                 </div>
-                <div className="text-[11px] font-semibold text-[#71856C] flex items-center gap-1 mr-24">
+                <div className="text-[11px] font-semibold text-[#71856C] flex items-center gap-1 mr-28">
                   <Calendar className="w-3.5 h-3.5" />
                   <span>{item.date}</span>
                 </div>
               </div>
 
-              {/* 4 Numbers Grid */}
-              <div className="grid grid-cols-4 gap-1.5 pt-1 text-center">
-                <div className="bg-[#F8FAF4] p-1.5 rounded-xl border border-[#E3EDDD]">
-                  <span className="text-[9px] font-semibold text-[#6C7E67] block">Total HH</span>
-                  <span className="font-black text-sm text-[#2F6D1F]">{item.totalHH}</span>
+              {/* 6 Numbers Grid */}
+              <div className="grid grid-cols-6 gap-1 text-center font-bold text-xs pt-1">
+                <div className="bg-[#FFFDF6] border border-[#FFE599] p-1 rounded-lg">
+                  <span className="text-[8px] text-[#7A5A00] block">Waste</span>
+                  <span className="text-[#7A5A00]">{item.givingWasteHH}</span>
                 </div>
-                <div className="bg-[#EDF9F1] p-1.5 rounded-xl border border-[#C5E8D3]">
-                  <span className="text-[9px] font-semibold text-[#187547] block">Segregated</span>
-                  <span className="font-black text-sm text-[#187547]">{item.segregatedHH}</span>
+                <div className="bg-[#F9FCF8] border border-[#B6D7A8] p-1 rounded-lg">
+                  <span className="text-[8px] text-[#274E13] block">Seg</span>
+                  <span className="text-[#274E13]">{item.segregatedHH}</span>
                 </div>
-                <div className="bg-[#EFF8FC] p-1.5 rounded-xl border border-[#C7E7F6]">
-                  <span className="text-[9px] font-semibold text-[#136C95] block">Plastic</span>
-                  <span className="font-black text-sm text-[#136C95]">{item.plasticHH}</span>
+                <div className="bg-[#F7FAFE] border border-[#A4C2F4] p-1 rounded-lg">
+                  <span className="text-[8px] text-[#0B5394] block">Dry</span>
+                  <span className="text-[#0B5394]">{item.dryHH}</span>
                 </div>
-                <div className="bg-[#FEF6EE] p-1.5 rounded-xl border border-[#FADFC7]">
-                  <span className="text-[9px] font-semibold text-[#B33B14] block">Sanitary</span>
-                  <span className="font-black text-sm text-[#B33B14]">{item.sanitaryHH}</span>
+                <div className="bg-[#FEF8F7] border border-[#E69185] p-1 rounded-lg">
+                  <span className="text-[8px] text-[#783F04] block">Sanitary</span>
+                  <span className="text-[#D9534F]">{item.sanitaryHH}</span>
+                </div>
+                <div className="bg-[#FAFAFA] border border-[#B7B7B7] p-1 rounded-lg">
+                  <span className="text-[8px] text-[#333333] block">Sp. Care</span>
+                  <span className="text-[#424242]">{item.specialCareHH}</span>
+                </div>
+                <div className="bg-[#FFF6F5] border border-[#CC4125] p-1 rounded-lg">
+                  <span className="text-[8px] text-[#8A1A10] block">Mixed</span>
+                  <span className="text-[#CC4125]">{item.mixedHH}</span>
                 </div>
               </div>
+
+              {item.remarks && (
+                <p className="text-[10px] text-[#55694E] italic bg-[#F7F9F5] px-2 py-0.5 rounded-md">
+                  Remarks: {item.remarks}
+                </p>
+              )}
             </div>
           ))}
 
@@ -148,13 +161,13 @@ export const RecentSubmissions: React.FC<RecentSubmissionsProps> = ({
           {records.map((item) => (
             <div
               key={item.id}
-              className="bg-white rounded-2xl border border-[#E1EAD9] p-3.5 shadow-xs space-y-2.5 transition hover:border-[#4C9F38]"
+              className="bg-white rounded-2xl border border-[#E1EAD9] p-3.5 shadow-xs space-y-2 transition hover:border-[#4C9F38]"
             >
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  <MapPin className="w-4 h-4 text-[#4C9F38]" />
-                  <span className="font-extrabold text-sm text-[#192613]">
-                    {item.layout}
+                <div>
+                  <span className="text-xs font-extrabold text-[#2563EB]">{item.pointName}</span>
+                  <span className="text-[11px] text-[#6C7E67] ml-2 font-medium">
+                    {item.route} ({item.ward?.split(" - ")[0]})
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -169,37 +182,50 @@ export const RecentSubmissions: React.FC<RecentSubmissionsProps> = ({
                         : "bg-[#F3F5F0] text-[#556950] border border-[#DEE5DA]"
                     }`}
                   >
-                    {item.syncStatus === "synced" ? "Synced to Sheets" : "Local Record"}
+                    {item.syncStatus === "synced" ? "Synced" : "Local"}
                   </span>
                 </div>
               </div>
 
-              {/* 4 Numbers Grid */}
-              <div className="grid grid-cols-4 gap-1.5 pt-1 text-center">
-                <div className="bg-[#F8FAF4] p-1.5 rounded-xl border border-[#E3EDDD]">
-                  <span className="text-[9px] font-semibold text-[#6C7E67] block">Total HH</span>
-                  <span className="font-black text-sm text-[#2F6D1F]">{item.totalHH}</span>
+              {/* 6 Numbers Grid */}
+              <div className="grid grid-cols-6 gap-1 text-center font-bold text-xs pt-1">
+                <div className="bg-[#FFFDF6] border border-[#FFE599] p-1 rounded-lg">
+                  <span className="text-[8px] text-[#7A5A00] block">Waste</span>
+                  <span className="text-[#7A5A00]">{item.givingWasteHH}</span>
                 </div>
-                <div className="bg-[#EDF9F1] p-1.5 rounded-xl border border-[#C5E8D3]">
-                  <span className="text-[9px] font-semibold text-[#187547] block">Segregated</span>
-                  <span className="font-black text-sm text-[#187547]">{item.segregatedHH}</span>
+                <div className="bg-[#F9FCF8] border border-[#B6D7A8] p-1 rounded-lg">
+                  <span className="text-[8px] text-[#274E13] block">Seg</span>
+                  <span className="text-[#274E13]">{item.segregatedHH}</span>
                 </div>
-                <div className="bg-[#EFF8FC] p-1.5 rounded-xl border border-[#C7E7F6]">
-                  <span className="text-[9px] font-semibold text-[#136C95] block">Plastic</span>
-                  <span className="font-black text-sm text-[#136C95]">{item.plasticHH}</span>
+                <div className="bg-[#F7FAFE] border border-[#A4C2F4] p-1 rounded-lg">
+                  <span className="text-[8px] text-[#0B5394] block">Dry</span>
+                  <span className="text-[#0B5394]">{item.dryHH}</span>
                 </div>
-                <div className="bg-[#FEF6EE] p-1.5 rounded-xl border border-[#FADFC7]">
-                  <span className="text-[9px] font-semibold text-[#B33B14] block">Sanitary</span>
-                  <span className="font-black text-sm text-[#B33B14]">{item.sanitaryHH}</span>
+                <div className="bg-[#FEF8F7] border border-[#E69185] p-1 rounded-lg">
+                  <span className="text-[8px] text-[#783F04] block">Sanitary</span>
+                  <span className="text-[#D9534F]">{item.sanitaryHH}</span>
+                </div>
+                <div className="bg-[#FAFAFA] border border-[#B7B7B7] p-1 rounded-lg">
+                  <span className="text-[8px] text-[#333333] block">Sp. Care</span>
+                  <span className="text-[#424242]">{item.specialCareHH}</span>
+                </div>
+                <div className="bg-[#FFF6F5] border border-[#CC4125] p-1 rounded-lg">
+                  <span className="text-[8px] text-[#8A1A10] block">Mixed</span>
+                  <span className="text-[#CC4125]">{item.mixedHH}</span>
                 </div>
               </div>
 
+              {item.remarks && (
+                <p className="text-[10px] text-[#55694E] italic bg-[#F7F9F5] px-2 py-0.5 rounded-md">
+                  Remarks: {item.remarks}
+                </p>
+              )}
+
               {/* Footer info */}
               <div className="flex items-center justify-between text-[11px] text-[#71856C] pt-1 border-t border-[#F0F4EC]">
-                <span>By: {item.workerName} ({item.workerId})</span>
-                <span className="font-bold text-[#2F6D1F] flex items-center gap-1">
-                  <Sparkles className="w-3 h-3 text-[#4C9F38]" />
-                  {item.segregationRate}% Segregation
+                <span>Supervisor: {item.supervisorName}</span>
+                <span className="font-semibold text-[#7A5A00]">
+                  {item.givingWasteHH} Total Visited
                 </span>
               </div>
             </div>

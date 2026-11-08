@@ -1,51 +1,56 @@
 /**
  * =========================================================================
  * SAAHAS WASTE TRACKER - GOOGLE APPS SCRIPT WEBHOOK CODE
- * =========================================================================
+ * Constituency: Sarvagna Nagar
  * 
  * Target Spreadsheet:
- * https://docs.google.com/spreadsheets/d/1qzU1bO5gylHnE31fJPJTKiN5io4eViHupq8Lu3y1PK4
+ * https://docs.google.com/spreadsheets/d/10OTW8vR9Yu2kmdTcFxEI5acELh0njtckUon8cKyK_8k/edit?gid=0#gid=0
  * 
- * STEP-BY-STEP INSTRUCTIONS TO ACTIVATE:
- * 1. Open the Google Sheet above.
+ * STEP-BY-STEP DEPLOYMENT INSTRUCTIONS:
+ * 1. Open your Google Sheet above.
  * 2. In the top menu bar, click: Extensions -> Apps Script.
- * 3. Delete any code in Code.gs and paste this entire file content.
+ * 3. Delete any default code in Code.gs and paste this entire code.
  * 4. Click the "Save" icon (Floppy disk).
  * 5. In the top right corner, click "Deploy" -> "New deployment".
  * 6. Under "Select type" (gear icon), select: "Web app".
  * 7. Set:
- *    - Description: "Saahas Daily Waste Tracker API"
- *    - Execute as: "Me (your google account)"
- *    - Who has access: "Anyone" (Crucial so mobile field workers can submit without Google login prompts)
+ *    - Description: "Saahas Waste Tracker API - Sarvagna Nagar"
+ *    - Execute as: "Me (your Google account)"
+ *    - Who has access: "Anyone" (Crucial so field supervisors can submit without login popups)
  * 8. Click "Deploy".
  * 9. Copy the generated "Web App URL" (ends in /exec).
- * 10. Open the web app -> click the Settings gear icon -> paste the URL -> Click "Save Configuration".
+ * 10. In the web app, click Settings (gear icon) -> paste the URL -> Click "Save Configuration".
  * =========================================================================
  */
 
 function doPost(e) {
   var lock = LockService.getScriptLock();
-  lock.tryLock(10000);
+  lock.tryLock(15000);
 
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var sheet = ss.getActiveSheet();
 
-    // Check if sheet is blank; if so, create styled headers
+    // Column Headers (Without segregation rate as requested)
+    var headers = [
+      "Timestamp",
+      "Date",
+      "Constituency",
+      "Ward No & Name",
+      "Route / Block",
+      "Collection Point",
+      "Field Supervisor Name",
+      "HHs Giving Waste",
+      "HHs Giving Seg Wet Waste",
+      "HHs Giving Dry Waste",
+      "HHs Giving Sanitary Waste",
+      "HHs Giving Special Care Waste",
+      "HHs Giving Mixed Waste",
+      "Remarks"
+    ];
+
+    // If sheet is empty, create formatted headers
     if (sheet.getLastRow() === 0) {
-      var headers = [
-        "Timestamp",
-        "Date",
-        "Layout / Area",
-        "Worker Name",
-        "Worker ID",
-        "Total HHs Giving Waste",
-        "HHs Giving Segregated Waste",
-        "HHs Giving Plastic Waste",
-        "HHs Giving Sanitary Waste",
-        "Segregation Rate (%)",
-        "Notes / Remarks"
-      ];
       sheet.appendRow(headers);
       var headerRange = sheet.getRange(1, 1, 1, headers.length);
       headerRange.setFontWeight("bold");
@@ -55,7 +60,7 @@ function doPost(e) {
       sheet.setFrozenRows(1);
     }
 
-    // Parse incoming data
+    // Parse incoming payload
     var data = {};
     if (e.postData && e.postData.contents) {
       data = JSON.parse(e.postData.contents);
@@ -63,38 +68,61 @@ function doPost(e) {
       data = e.parameter;
     }
 
-    var timestamp = data.timestamp || new Date().toISOString();
-    var date = data.date || Utilities.formatDate(new Date(), "Asia/Kolkata", "yyyy-MM-dd");
-    var layout = data.layout || "Survagnya Nagar";
-    var workerName = data.workerName || "Field Worker";
-    var workerId = data.workerId || "FW-01";
-    var totalHH = Number(data.totalHH || 0);
-    var segregatedHH = Number(data.segregatedHH || 0);
-    var plasticHH = Number(data.plasticHH || 0);
-    var sanitaryHH = Number(data.sanitaryHH || 0);
-    var segregationRate = totalHH > 0 ? ((segregatedHH / totalHH) * 100).toFixed(1) + "%" : "0%";
-    var notes = data.notes || "";
+    // Support single record or batch records array
+    var records = [];
+    if (data.records && Array.isArray(data.records)) {
+      records = data.records;
+    } else {
+      records = [data];
+    }
 
-    // Append entry as a new row
-    sheet.appendRow([
-      timestamp,
-      date,
-      layout,
-      workerName,
-      workerId,
-      totalHH,
-      segregatedHH,
-      plasticHH,
-      sanitaryHH,
-      segregationRate,
-      notes
-    ]);
+    var rows = [];
+    for (var i = 0; i < records.length; i++) {
+      var item = records[i];
+      var timestamp = item.timestamp || new Date().toISOString();
+      var date = item.date || Utilities.formatDate(new Date(), "Asia/Kolkata", "yyyy-MM-dd");
+      var constituency = item.constituency || "Sarvagna Nagar";
+      var ward = item.ward || "";
+      var route = item.route || "";
+      var pointName = item.pointName || "Point 1";
+      var supervisorName = item.supervisorName || "Field Supervisor";
+      var givingWaste = Number(item.givingWasteHH || item.totalHH || 0);
+      var segWet = Number(item.segregatedHH || 0);
+      var dry = Number(item.dryHH || item.plasticHH || 0);
+      var sanitary = Number(item.sanitaryHH || 0);
+      var specialCare = Number(item.specialCareHH || 0);
+      var mixed = Number(item.mixedHH || 0);
+      var remarks = item.remarks || item.notes || "";
+
+      rows.push([
+        timestamp,
+        date,
+        constituency,
+        ward,
+        route,
+        pointName,
+        supervisorName,
+        givingWaste,
+        segWet,
+        dry,
+        sanitary,
+        specialCare,
+        mixed,
+        remarks
+      ]);
+    }
+
+    if (rows.length > 0) {
+      var nextRow = sheet.getLastRow() + 1;
+      var range = sheet.getRange(nextRow, 1, rows.length, headers.length);
+      range.setValues(rows);
+    }
 
     return ContentService
       .createTextOutput(JSON.stringify({
         status: "success",
-        message: "Entry recorded in Google Sheet",
-        row: sheet.getLastRow()
+        message: "Recorded " + rows.length + " collection point entries in Google Sheet",
+        rowCount: sheet.getLastRow()
       }))
       .setMimeType(ContentService.MimeType.JSON);
 
@@ -114,7 +142,8 @@ function doGet(e) {
   return ContentService
     .createTextOutput(JSON.stringify({
       status: "online",
-      service: "Saahas Waste Tracker API",
+      service: "Saahas Waste Tracker API (Sarvagna Nagar)",
+      sheet: "https://docs.google.com/spreadsheets/d/10OTW8vR9Yu2kmdTcFxEI5acELh0njtckUon8cKyK_8k",
       timestamp: new Date().toISOString()
     }))
     .setMimeType(ContentService.MimeType.JSON);

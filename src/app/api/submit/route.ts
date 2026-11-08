@@ -1,25 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const DEFAULT_APPS_SCRIPT_URL =
+  process.env.NEXT_PUBLIC_GOOGLE_APPS_SCRIPT_URL ||
   "https://script.google.com/macros/s/AKfycbzFEQRHTk6EeqIhh52CIcpdx1RcmR15zJt1DQjd86pOM54nfS1OgLF7Hd72stCLJoAMUA/exec";
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { record, webhookUrl } = body;
+    const { record, records, webhookUrl } = body;
 
-    if (!record) {
+    const items = records ? records : record ? [record] : [];
+
+    if (items.length === 0) {
       return NextResponse.json(
         { success: false, message: "Missing record data" },
         { status: 400 }
       );
     }
 
-    // Determine webhook URL: either passed from client, or from server env, or fallback default
     const targetUrl =
       webhookUrl || process.env.GOOGLE_APPS_SCRIPT_URL || DEFAULT_APPS_SCRIPT_URL;
 
-    // If no webhook URL is configured yet, gracefully return mock success
     if (!targetUrl || targetUrl.trim() === "") {
       return NextResponse.json({
         success: true,
@@ -28,26 +29,30 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Send payload to Google Apps Script Web App
-    const payload = {
-      timestamp: record.timestamp,
-      date: record.date,
-      layout: record.layout,
-      workerName: record.workerName,
-      workerId: record.workerId,
-      totalHH: record.totalHH,
-      segregatedHH: record.segregatedHH,
-      plasticHH: record.plasticHH,
-      sanitaryHH: record.sanitaryHH,
-      notes: record.notes || "",
-    };
+    // Format payload items
+    const payloadItems = items.map((rec: any) => ({
+      timestamp: rec.timestamp || new Date().toISOString(),
+      date: rec.date,
+      constituency: rec.constituency || "Sarvagna Nagar",
+      ward: rec.ward,
+      route: rec.route,
+      pointName: rec.pointName,
+      supervisorName: rec.supervisorName,
+      givingWasteHH: Number(rec.givingWasteHH || 0),
+      segregatedHH: Number(rec.segregatedHH || 0),
+      dryHH: Number(rec.dryHH || 0),
+      sanitaryHH: Number(rec.sanitaryHH || 0),
+      specialCareHH: Number(rec.specialCareHH || 0),
+      mixedHH: Number(rec.mixedHH || 0),
+      remarks: rec.remarks || "",
+    }));
 
     const response = await fetch(targetUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(payloadItems.length === 1 ? payloadItems[0] : { records: payloadItems }),
       redirect: "follow",
     });
 
@@ -68,7 +73,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       mode: "webhook",
-      message: result.message || "Entry uploaded to Google Sheet successfully",
+      message: result.message || "Entries uploaded to Google Sheet successfully",
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Internal Server Error";
