@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import { Calendar, MapPin, Plus, CheckCircle2, Navigation } from "lucide-react";
 import {
   WardOption,
@@ -39,6 +39,17 @@ export const RoutePointSelector: React.FC<RoutePointSelectorProps> = ({
   completedPointsMap,
 }) => {
   const availableRoutes = WARD_ROUTES[selectedWard] || [];
+
+  // Strictly enforce that selectedRoute belongs to selectedWard
+  useEffect(() => {
+    if (availableRoutes.length > 0 && !availableRoutes.includes(selectedRoute)) {
+      onSelectRoute(availableRoutes[0]);
+    }
+  }, [selectedWard, selectedRoute, availableRoutes, onSelectRoute]);
+
+  const effectiveRoute = availableRoutes.includes(selectedRoute)
+    ? selectedRoute
+    : availableRoutes[0] || selectedRoute;
 
   return (
     <div className="bg-white rounded-2xl p-4 border border-[#E1EAD9] shadow-xs space-y-3.5">
@@ -99,7 +110,7 @@ export const RoutePointSelector: React.FC<RoutePointSelectorProps> = ({
           <div>
             <label className="text-[10px] uppercase font-bold text-[#6D8068] block mb-1">Route / Block</label>
             <select
-              value={selectedRoute}
+              value={effectiveRoute}
               onChange={(e) => onSelectRoute(e.target.value as RouteOption)}
               className="w-full text-xs font-bold text-[#192613] bg-[#F4F8F1] border border-[#CFDFC5] rounded-xl px-2.5 py-2 focus:outline-hidden focus:ring-2 focus:ring-[#4C9F38]"
             >

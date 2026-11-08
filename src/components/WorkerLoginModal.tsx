@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
-import { User, Check, X, MapPin } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { User, Check, X } from "lucide-react";
 import {
   WorkerProfile,
   WardOption,
@@ -49,11 +49,21 @@ export const WorkerLoginModal: React.FC<WorkerLoginModalProps> = ({
   });
   const [isRemembered, setIsRemembered] = useState(true);
 
+  // Sync state whenever modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setName(currentProfile.name);
+      const w = currentProfile.assignedWard || "Ward 28 - Kammanahalli";
+      setWard(w);
+      const available = WARD_ROUTES[w];
+      setRoute(available.includes(currentProfile.assignedRoute) ? currentProfile.assignedRoute : available[0]);
+    }
+  }, [isOpen, currentProfile]);
+
   if (!isOpen) return null;
 
   const handleWardChange = (selectedWard: WardOption) => {
     setWard(selectedWard);
-    // Auto-select the first route of the new ward
     setRoute(WARD_ROUTES[selectedWard][0]);
   };
 
@@ -147,7 +157,7 @@ export const WorkerLoginModal: React.FC<WorkerLoginModalProps> = ({
             </div>
           </div>
 
-          {/* Field 3: Route / Block (Dynamic by Ward) */}
+          {/* Field 3: Route / Block (Strictly filtered by Ward) */}
           <div>
             <label className="block text-xs font-bold text-[#192613] mb-1">
               Route / Block <span className="text-[#647C5E] font-normal">(ಮಾರ್ಗ / ಬ್ಲಾಕ್)</span>
@@ -173,7 +183,7 @@ export const WorkerLoginModal: React.FC<WorkerLoginModalProps> = ({
               })}
             </div>
             <p className="text-[10px] text-[#71856C] mt-1">
-              * Assigned route can be confirmed or changed each day on the main screen.
+              * Assigned route can also be confirmed or changed on the main screen anytime.
             </p>
           </div>
 

@@ -28,6 +28,8 @@ import {
   RouteOption,
   CollectionPointEntry,
   CONSTITUENCY_NAME,
+  WARD_ROUTES,
+  getWardForRoute,
 } from "@/types/waste-tracker";
 import {
   DEFAULT_WORKER,
@@ -109,8 +111,10 @@ export default function WasteTrackerApp() {
     const savedProfile = getStoredWorkerProfile();
     if (savedProfile) {
       setWorker(savedProfile);
-      if (savedProfile.assignedWard) setWard(savedProfile.assignedWard);
-      if (savedProfile.assignedRoute) setRoute(savedProfile.assignedRoute);
+      const w = savedProfile.assignedWard || "Ward 28 - Kammanahalli";
+      setWard(w);
+      const validRoutes = WARD_ROUTES[w];
+      setRoute(validRoutes.includes(savedProfile.assignedRoute) ? savedProfile.assignedRoute : validRoutes[0]);
     }
 
     // Check if user has already visited/confirmed profile today
@@ -134,8 +138,11 @@ export default function WasteTrackerApp() {
     // 4. Restore active daily draft if available
     const savedDraft = getStoredDailyDraft();
     if (savedDraft && savedDraft.date === today) {
-      if (savedDraft.ward) setWard(savedDraft.ward);
-      if (savedDraft.route) setRoute(savedDraft.route);
+      const draftWard = savedDraft.ward || "Ward 28 - Kammanahalli";
+      setWard(draftWard);
+      const validRoutes = WARD_ROUTES[draftWard];
+      setRoute(validRoutes.includes(savedDraft.route) ? savedDraft.route : validRoutes[0]);
+
       if (savedDraft.points && savedDraft.points.length > 0) {
         setPointsData(savedDraft.points);
         setCollectionPoints(savedDraft.points.map((p) => p.pointName));
@@ -169,6 +176,19 @@ export default function WasteTrackerApp() {
     setTimeout(() => {
       setToastMessage(null);
     }, 4000);
+  };
+
+  const handleSelectWard = (newWard: WardOption) => {
+    setWard(newWard);
+    const validRoutes = WARD_ROUTES[newWard];
+    if (!validRoutes.includes(route)) {
+      setRoute(validRoutes[0]);
+    }
+  };
+
+  const handleSelectRoute = (newRoute: RouteOption) => {
+    setRoute(newRoute);
+    setWard(getWardForRoute(newRoute));
   };
 
   const handleSaveProfile = (profile: WorkerProfile) => {
@@ -278,12 +298,14 @@ export default function WasteTrackerApp() {
     const pointsToSubmit = pointsData.filter((p) => isPointFilled(p));
     const finalPoints = pointsToSubmit.length > 0 ? pointsToSubmit : pointsData;
 
+    const actualWard = getWardForRoute(route);
+
     const records: WasteRecord[] = finalPoints.map((p) => ({
       id: "rec_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7),
       timestamp: new Date().toISOString(),
       date,
       constituency: CONSTITUENCY_NAME,
-      ward,
+      ward: actualWard,
       route,
       supervisorName: worker.name,
       pointName: p.pointName,
@@ -385,6 +407,7 @@ export default function WasteTrackerApp() {
   const isLastPoint = activePointIndex === collectionPoints.length - 1;
 
   // Live Records for Coordinator (Combines in-progress points + pending queue + history)
+  const actualWard = getWardForRoute(route);
   const liveActivePointsRecords: WasteRecord[] = pointsData
     .filter((p) => isPointFilled(p))
     .map((p) => ({
@@ -392,7 +415,7 @@ export default function WasteTrackerApp() {
       timestamp: new Date().toISOString(),
       date,
       constituency: CONSTITUENCY_NAME,
-      ward,
+      ward: actualWard,
       route,
       supervisorName: worker.name,
       pointName: p.pointName,
@@ -466,9 +489,9 @@ export default function WasteTrackerApp() {
               onSelectDate={setDate}
               maxDate={date}
               selectedWard={ward}
-              onSelectWard={setWard}
+              onSelectWard={handleSelectWard}
               selectedRoute={route}
-              onSelectRoute={setRoute}
+              onSelectRoute={handleSelectRoute}
               collectionPoints={collectionPoints}
               activePointIndex={activePointIndex}
               onSelectPointIndex={setActivePointIndex}
@@ -653,7 +676,7 @@ export default function WasteTrackerApp() {
         isOpen={isReviewModalOpen}
         onClose={() => setIsReviewModalOpen(false)}
         date={date}
-        ward={ward}
+        ward={actualWard}
         route={route}
         supervisorName={worker.name}
         points={pointsData}

@@ -19,6 +19,20 @@ export const WARD_ROUTES: Record<WardOption, RouteOption[]> = {
   ],
 };
 
+export const ALL_ROUTES: { ward: WardOption; route: RouteOption }[] = [
+  { ward: "Ward 28 - Kammanahalli", route: "Janaki Ram Layout - Route 1" },
+  { ward: "Ward 28 - Kammanahalli", route: "Janaki Ram Layout - Route 2" },
+  { ward: "Ward 29 - Kacharakanahalli", route: "AK Colony - Route 1" },
+  { ward: "Ward 29 - Kacharakanahalli", route: "AK Colony - Route 2" },
+];
+
+export function getWardForRoute(route: string): WardOption {
+  if (route && (route.includes("Janaki Ram") || route.includes("Ward 28"))) {
+    return "Ward 28 - Kammanahalli";
+  }
+  return "Ward 29 - Kacharakanahalli";
+}
+
 export interface WorkerProfile {
   name: string; // Name (ಹೆಸರು)
   assignedWard: WardOption;
