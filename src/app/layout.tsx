@@ -14,7 +14,9 @@ export const metadata: Metadata = {
   description: "Daily field waste recorder for Saahas on-field workers and coordinators",
   applicationName: "Saahas Waste Tracker",
   icons: {
-    icon: "/favicon.ico",
+    icon: "/saahas-favicon.svg",
+    shortcut: "/saahas-favicon.svg",
+    apple: "/saahas-favicon.svg",
   },
 };
 

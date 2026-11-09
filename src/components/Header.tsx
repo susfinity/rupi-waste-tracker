@@ -33,20 +33,20 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Top Brand Bar */}
       <div className="max-w-md mx-auto px-4 py-2.5 flex items-center justify-between">
         {/* Brand Logo & Name */}
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#4C9F38] to-[#367526] flex items-center justify-center shadow-xs text-white font-black text-lg">
-            S
-          </div>
-          <div>
-            <div className="flex items-center gap-1.5">
-              <span className="font-extrabold text-[#192613] tracking-tight text-base">
-                SAAHAS
-              </span>
-              <span className="text-[10px] font-semibold uppercase tracking-wider bg-[#EDF7E8] text-[#377527] px-1.5 py-0.5 rounded-md border border-[#CBE6BF]">
+        <div className="flex items-center gap-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/saahas-logo.svg"
+            alt="Saahas"
+            className="h-6 w-auto max-w-[130px] object-contain"
+          />
+          <div className="border-l border-[#D5E4CC] pl-2">
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider bg-[#EDF7E8] text-[#377527] px-1.5 py-0.5 rounded-md border border-[#CBE6BF]">
                 Field
               </span>
             </div>
-            <p className="text-[11px] font-medium text-[#5B6B56] leading-none">
+            <p className="text-[10px] font-medium text-[#5B6B56] leading-none mt-0.5">
               Waste Tracker • ತ್ಯಾಜ್ಯ ಟ್ರ್ಯಾಕರ್
             </p>
           </div>
